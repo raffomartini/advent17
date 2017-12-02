@@ -1,24 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x92c5e0f5
+# __coconut_hash__ = 0xfb8faa05
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
-''' --- Day 1: Inverse Captcha --- You're standing in a room with "digitization quarantine" written in LEDs along one wall. The only door is locked, but it includes a small interface. "Restricted Area - Strictly No Digitized Users Allowed."
+'''
+--- Part Two ---
 
-It goes on to explain that you may only leave by solving a captcha to prove you're not a human. Apparently, you only get one millisecond to solve the captcha: too fast for a normal human, but it feels like hours to you. 
+You notice a progress bar that jumps to 50% completion. Apparently, the door isn't yet satisfied, but it did emit a star as encouragement. The instructions change:
 
-The captcha requires you to review a sequence of digits (your puzzle input)
-and find the sum of all digits that match the next digit in the list. The list
-is circular, so the digit after the last digit is the first digit in the list.
+Now, instead of considering the next digit, it wants you to consider the digit halfway around the circular list. That is, if your list contains 10 items, only include a digit in your sum if the digit 10/2 = 5 steps forward matches it. Fortunately, your list has an even number of elements.
 
 For example:
 
-1122 produces a sum of 3 (1 + 2) because the first digit (1) matches the second digit and the third digit (2) matches the fourth digit. 
-1111 produces 4 because each digit (all 1) matches the next. 
-1234 produces 0 because no digit matches the next. 
-91212129 produces 9 because the only digit that matches the next one is the last digit, 9. 
-What is the solution to your captcha? 
+'1212' produces 6: the list contains 4 items, and all four digits match the digit 2 items ahead.
+'1221' produces 0, because every comparison is between a 1 and a 2.
+'123425' produces 4, because both 2s match each other, but no other digit has a match.
+'123123' produces 12.
+'12131415' produces 4.
 '''
 
 # Coconut Header: -------------------------------------------------------------
@@ -662,29 +661,45 @@ In [67]: reduce( (a,x) -> (x |> int) + a, '101', 0)
 Out[67]: 2
 '''
 
+def lshift(seq, n=1):
+    return seq[n:] + seq[:n]
+
 def captcha(*_coconut_match_to_args, **_coconut_match_to_kwargs):
     _coconut_match_check = False
-    if (1 <= _coconut.len(_coconut_match_to_args) <= 2) and (_coconut.sum((_coconut.len(_coconut_match_to_args) > 1, "x" in _coconut_match_to_kwargs)) == 1) and (_coconut.isinstance(_coconut_match_to_args[0], _coconut.abc.Sequence)) and (_coconut.len(_coconut_match_to_args[0]) == 2):
-        _coconut_match_temp_0 = _coconut_match_to_args[1] if _coconut.len(_coconut_match_to_args) > 1 else _coconut_match_to_kwargs.pop("x")
-        acc = _coconut_match_to_args[0][0]
-        y = _coconut_match_to_args[0][1]
+    if (_coconut.len(_coconut_match_to_args) == 2) and ("acc" not in _coconut_match_to_kwargs) and (_coconut.isinstance(_coconut_match_to_args[1], _coconut.abc.Sequence)) and (_coconut.len(_coconut_match_to_args[1]) == 2):
+        _coconut_match_temp_0 = _coconut_match_to_args[0] if _coconut.len(_coconut_match_to_args) > 0 else _coconut_match_to_kwargs.pop("acc")
+        x = _coconut_match_to_args[1][0]
+        y = _coconut_match_to_args[1][1]
         if not _coconut_match_to_kwargs:
-            x = _coconut_match_temp_0
+            acc = _coconut_match_temp_0
             _coconut_match_check = True
     if not _coconut_match_check:
-        _coconut_match_err = _coconut_MatchError("pattern-matching failed for " "'def captcha((acc,y), x):'" " in " + _coconut.repr(_coconut.repr(_coconut_match_to_args)))
-        _coconut_match_err.pattern = 'def captcha((acc,y), x):'
+        _coconut_match_err = _coconut_MatchError("pattern-matching failed for " "'def captcha(acc, (x,y)):'" " in " + _coconut.repr(_coconut.repr(_coconut_match_to_args)))
+        _coconut_match_err.pattern = 'def captcha(acc, (x,y)):'
         _coconut_match_err.value = _coconut_match_to_args
         raise _coconut_match_err
 
     x = (int)(x)
+    y = (int)(y)
     if x == y:
-        return acc + y, x
+        return acc + y
     else:
-        return acc, x
+        return acc
 
-def solve(seq):
-    solution = (_coconut_partial(reduce, {0: captcha, 2: (0, (int)(seq[-1]))}, 3))(seq)
-    return solution[0]
+@_coconut_tco
+def part1(seq):
+    return _coconut_tail_call((_coconut_partial(reduce, {0: captcha, 2: 0}, 3)), zip(seq, (lshift)(seq)))
 
-(print)((solve)(PUZZLE))
+@_coconut_tco
+def part2(seq):
+    halflen = len(seq) // 2
+    return _coconut_tail_call((_coconut_partial(reduce, {0: captcha, 2: 0}, 3)), zip(seq, (_coconut_partial(lshift, {1: halflen}, 2))(seq)))
+
+
+(print)('Part1')
+(print)((part1)(PUZZLE))
+
+##### -- PART2 
+
+(print)('Part2')
+(print)((part2)(PUZZLE))
