@@ -1,0 +1,103 @@
+'''
+--- Day 2: Corruption Checksum ---
+
+As you walk through the door, a glowing humanoid shape yells in your direction. "You there! Your state appears to be idle. Come help us repair the corruption in this spreadsheet - if we take another millisecond, we'll have to display an hourglass cursor!"
+
+The spreadsheet consists of rows of apparently-random numbers. To make sure the recovery process is on the right track, they need you to calculate the spreadsheet's checksum. For each row, determine the difference between the largest value and the smallest value; the checksum is the sum of all of these differences.
+
+For example, given the following spreadsheet:
+
+5 1 9 5
+7 5 3
+2 4 6 8
+The first row's largest and smallest values are 9 and 1, and their difference is 8.
+The second row's largest and smallest values are 7 and 3, and their difference is 4.
+The third row's difference is 6.
+In this example, the spreadsheet's checksum would be 8 + 4 + 6 = 18.
+
+--- Part Two ---
+
+"Great work; looks like we're on the right track after all. Here's a star for your effort." However, the program seems a little worried. Can programs be worried?
+
+"Based on what we're seeing, it looks like all the User wanted is some information about the evenly divisible values in the spreadsheet. Unfortunately, none of us are equipped for that kind of calculation - most of us specialize in bitwise operations."
+
+It sounds like the goal is to find the only two numbers in each row where one evenly divides the other - that is, where the result of the division operation is a whole number. They would like you to find those numbers on each line, divide them, and add up each line's result.
+
+For example, given the following spreadsheet:
+
+5 9 2 8
+9 4 7 3
+3 8 6 5
+In the first row, the only two numbers that evenly divide are 8 and 2; the result of this division is 4.
+In the second row, the two numbers are 9 and 3; the result is 3.
+In the third row, the result is 2.
+In this example, the sum of the results would be 4 + 3 + 2 = 9.
+
+'''
+
+import numpy as np
+
+PUZZLE_FILE = 'input02.txt'
+
+# table = np.genfromtxt('input02.txt', delimiter='\t', dtype='int_' )
+
+def part1(table):
+    return sum(table |> map$(l->max(l)-min(l)))
+
+def part2(table):
+    
+    def evenly_divisible(x,line):
+        ''' 
+            Returns an iterable such as:
+            For every yi in line zi 
+            If yi evently divisible with x
+                zi = yi / x
+            else
+                zi = 0    
+                
+        '''
+        y = line |> filter$((y) -> y!=x and y%x == 0) |> sum
+        return y//x if y != 0 else 0
+        # divisable_by_x = line |> map$((y)->(y//x if y%x == 0 and x!=y else None))
+        # return divisable_by_x |> filter$((x)->(x is not None))
+    
+    # Line checksum
+    def checksum(line):
+        '''
+        Line checksum
+        '''
+        f= evenly_divisible$(?, line)
+        return line |> map$(f) |> sum
+
+    return table |> map$(checksum) |> sum
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    table = np.genfromtxt(PUZZLE_FILE, delimiter='\t', dtype='int_' )
+    'Part1:' |> print
+    table |> part1 |> print
+    '-'*55 |> print
+    'Part2:' |> print
+    table |> part2 |> print
+
+
+
+
+# table = np.array([[5, 9, 2, 8],[ 9, 4, 7, 3],[3, 8, 6, 5]])
+# table[0] # array([5, 9, 2, 8])
+
+
+
+
+    
+
+
+
+
+
+
