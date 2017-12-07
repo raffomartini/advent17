@@ -43,16 +43,41 @@ def reallocate(buffer):
     reallocated_buffer = map((+), buffer, reallocated_blocks) |> tuple
     return _rotate(reallocated_buffer,-offset)
 
-def next_step(history):
-    'history=(buffer,):'
-    buffer = history[-1]
-    buffer = buffer |> reallocate
-    if buffer in history:
-        return len(history)
-    else:
-        return next_step(history + (buffer,))
-
 def part1(filename):
+    def next_step(history):
+        'history=(buffer,):'
+        buffer = history[-1]
+        buffer = buffer |> reallocate
+        if buffer in history:
+            return len(history)
+        else:
+            return next_step(history + (buffer,))
+
+    with open(filename) as f:
+        buffer = f.readline().split() |> map$(int,?) |> tuple
+
+    return next_step((buffer,))
+
+'''
+--- Part Two ---
+
+Out of curiosity, the debugger would also like to know the size of the loop: starting from a state that has already been seen, how many block redistribution cycles must be performed before that same state is seen again?
+
+In the example above, 2 4 1 2 is seen again after four cycles, and so the answer in that example would be 4.
+
+How many cycles are in the infinite loop that arises from the configuration in your puzzle input?
+'''
+
+def part2(filename):
+    def next_step(history):
+        'history=(buffer,):'
+        buffer = history[-1]
+        buffer = buffer |> reallocate
+        if buffer in history:
+            return len(history) - history.index(buffer)
+        else:
+            return next_step(history + (buffer,))
+
     with open(filename) as f:
         buffer = f.readline().split() |> map$(int,?) |> tuple
 
@@ -60,6 +85,8 @@ def part1(filename):
 
 if __name__ == '__main__':
     part1(FILE) |> print
+    "-*"*54 |> print
+    part2(FILE) |> print
 
 
 
