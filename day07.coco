@@ -1,0 +1,231 @@
+'''
+--- Day 7: Recursive Circus ---
+
+Wandering further through the circuits of the computer, you come upon a tower of programs that have gotten themselves into a bit of trouble. A recursive algorithm has gotten out of hand, and now they're balanced precariously in a large tower.
+
+One program at the bottom supports the entire tower. It's holding a large disc, and on the disc are balanced several more sub-towers. At the bottom of these sub-towers, standing on the bottom disc, are other programs, each holding their own disc, and so on. At the very tops of these sub-sub-sub-...-towers, many programs stand simply keeping the disc below them balanced but with no disc of their own.
+
+You offer to help, but first you need to understand the structure of these towers. You ask each program to yell out their name, their weight, and (if they're holding a disc) the names of the programs immediately above them balancing on that disc. You write this information down (your puzzle input). Unfortunately, in their panic, they don't do this in an orderly fashion; by the time you're done, you're not sure which program gave which information.
+
+For example, if your list is the following:
+
+pbga (66)
+xhth (57)
+ebii (61)
+havc (66)
+ktlj (57)
+fwft (72) -> ktlj, cntj, xhth
+qoyq (66)
+padx (45) -> pbga, havc, qoyq
+tknk (41) -> ugml, padx, fwft
+jptl (61)
+ugml (68) -> gyxo, ebii, jptl
+gyxo (61)
+cntj (57)
+...then you would be able to recreate the structure of the towers that looks like this:
+
+                gyxo
+              /     
+         ugml - ebii
+       /      \     
+      |         jptl
+      |        
+      |         pbga
+     /        /
+tknk --- padx - havc
+     \        \
+      |         qoyq
+      |             
+      |         ktlj
+       \      /     
+         fwft - cntj
+              \     
+                xhth
+In this example, tknk is at the bottom of the tower (the bottom program), and is holding up ugml, padx, and fwft. Those programs are, in turn, holding up other programs; in this example, none of those programs are holding up any other programs, and are all the tops of their own towers. (The actual tower balancing in front of you is much larger.)
+
+Before you're ready to help them, you need to make sure your information is correct. What is the name of the bottom program?
+'''
+
+sample = '''\
+pbga (66)
+xhth (57)
+ebii (61)
+havc (66)
+ktlj (57)
+fwft (72) -> ktlj, cntj, xhth
+qoyq (66)
+padx (45) -> pbga, havc, qoyq
+tknk (41) -> ugml, padx, fwft
+jptl (61)
+ugml (68) -> gyxo, ebii, jptl
+gyxo (61)
+cntj (57)
+'''
+
+import re
+from pprint import pprint
+from collections import namedtuple, Counter
+FILE = 'input07.txt'
+Program = namedtuple('Program', 'name,weight,total_weight,disk_weights,childs,parent')
+
+'''
+line = 'fwft (72) -> ktlj, cntj, xhth'
+pattern = r'(?P<name>\w+)\s\((?P<weight>\d+)\).*'
+m = re.search(pattern, line)
+m.groupdict()
+# out: {'name': 'fwft'}
+pattern = r'.*->\s(.*)'
+m = re.search(pattern, line)
+m.groups()
+# out: ('ktlj, cntj, xhth',)
+'''
+
+def parse(line):
+    pattern = r'(\w+)\s\((\d+)\)(?:.*->\s(.*))?'
+    m = re.search(pattern, line)
+    groups = m.groups()
+    try:
+        return Program(groups[0], groups[1] |> int, None, None, tuple(groups[2].split(', ')), None)
+    except AttributeError:
+        return Program(groups[0], groups[1] |> int, None, None, None, None)
+
+
+def load(file=None):
+    '''
+    return: pool
+    '''
+    if file is not None:
+        with open(file) as f:
+            in_data = f.readlines()
+    else:
+        in_data = sample.splitlines()
+    pool = in_data |> map$(parse) |> tuple
+    return dict( (p.name , p) for p in pool)
+
+def add_parents(pool):
+    '''
+    return: pool
+    '''
+
+    def lookup_parent(p):
+
+        def is_parent(p,other_p):
+            try:    
+                return other_p.name if p.name in other_p.childs else None
+            except TypeError:
+                return None
+
+        # update_program = (p,parent) -> p._replace(parent=parent)
+
+        try:
+            parent = pool.values()  |> filter$(is_parent$(p,?)) |> next |> .name
+        except StopIteration:
+            # parent not found
+            parent = None
+        # return parent |> update_program$(p,?)
+        return p._replace(parent=parent)
+
+    names, programs = zip(*pool.items())
+    return dict(zip(names, programs |> map$(lookup_parent)))
+
+def part1(file=None):
+    '''
+    return: root program name (string)
+    '''
+    # file = None
+    # build relationship
+    pool = file |> load |> add_parents
+    # filter out the program without parent and displays the name
+    return ( pool.values() |> filter$((p)->p.parent == None) |> next |> .name, pool)
+
+'''
+--- Part Two ---
+
+The programs explain the situation: they can't get down. Rather, they could get down, if they weren't expending all of their energy trying to keep the tower balanced. Apparently, one program has the wrong weight, and until it's fixed, they're stuck here.
+
+For any program holding a disc, each program standing on that disc forms a sub-tower. Each of those sub-towers are supposed to be the same weight, or the disc itself isn't balanced. The weight of a tower is the sum of the weights of the programs in that tower.
+
+In the example above, this means that for ugml's disc to be balanced, gyxo, ebii, and jptl must all have the same weight, and they do: 61.
+
+However, for tknk to be balanced, each of the programs standing on its disc and all programs above it must each match. This means that the following sums must all be the same:
+
+ugml + (gyxo + ebii + jptl) = 68 + (61 + 61 + 61) = 251
+padx + (pbga + havc + qoyq) = 45 + (66 + 66 + 66) = 243
+fwft + (ktlj + cntj + xhth) = 72 + (57 + 57 + 57) = 243
+As you can see, tknk's disc is unbalanced: ugml's stack is heavier than the other two. Even though the nodes above ugml are balanced, ugml itself is too heavy: it needs to be 8 units lighter for its stack to weigh 243 and keep the towers balanced. If this change were made, its weight would be 60.
+
+Given that exactly one program is the wrong weight, what would its weight need to be to balance the entire tower?
+'''    
+
+def update(p,pool,**kwargs):
+    p = p._replace(**kwargs)
+    pool[p.name] = p
+
+
+def part2(root=None, pool=None, file=None):
+    '''
+    return: 
+    '''
+    def check_weights(p_name,pool):
+        '''
+        p_name = root
+        returns (weigh, solved) 
+        solved is a bool, if True that's the solution
+        '''
+        # '*_'*20 |> print
+        # print('Process: ',p_name)
+
+        p = pool[p_name]
+        # Case no children: total weight = process weight
+        if p.childs == None:
+            update(p,pool,total_weight=p.weight)
+            # pprint(pool) 
+            return None
+        
+        # Case children:
+        # Update disk weights
+        return_value = p.childs |> map$(check_weights$(?,pool)) |> reduce$(lambda a,x: x if x is not None else a)
+        # p_name |> print
+        # if successful return
+        if return_value is not None:
+            return return_value
+
+        #else update weights and continue
+        disk_weights = p.childs |> map$(pool[]) |> map$(.total_weight) |> tuple
+        # print(p_name, disk_weights)
+        most_common = Counter(disk_weights).most_common(2) # Out[24]: [(11, 2), (2, 1)]
+        # print(p_name, most_common)
+        # Case: imbalance
+        if len(most_common) == 2:
+            odd_weight = most_common[1][0]
+            index = disk_weights.index(odd_weight)
+            odd_name = p.childs[index]
+            good_weight = most_common[0][0]
+            # print(p_name, good_weight, odd_weight, odd_name)
+            return pool[odd_name].weight + good_weight - odd_weight        
+        # Update total_weight
+        total_weight = p.weight + sum(disk_weights)
+        update(p,pool,total_weight=total_weight)
+        return None
+
+    if root is None or pool is None:
+        root, pool = part1(file)
+    print (root)
+    return  check_weights(root, pool)
+    # pprint(pool)
+    # return return_value
+    
+if __name__ == '__main__':
+    '*-'*52 |> print
+    root, pool = part1(FILE)
+    print('Part1: ', root)
+    solution = part2(root, pool)
+    print('Part2: ', solution)
+
+
+
+
+
+
+
+
