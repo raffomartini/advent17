@@ -120,9 +120,50 @@ To prove you've removed it, you need to count all of the characters within the g
 How many non-canceled characters are within the garbage in your puzzle input?
 '''
 
-# def part2(file=None,stream=None):
+def part2(file=None,stream=None):
+    '''
+    returns solution
+    '''
+    
+    def process(state, char):
+        '''
+        process the stream char by char
+        '''
+        cleaned=state.cleaned
+        garbage=state.garbage
+        ignore_next=state.ignore_next
 
-part1(FILE) |> print
+        if state.garbage:
+            #in garbage
+            if not ignore_next:
+                #previous char not a !
+                case char:
+                    match '>':
+                        #close garbage
+                        garbage = False
+                    match '!':
+                        #escape
+                        ignore_next = True
+                else:
+                    cleaned += 1
+
+            else:
+                ignore_next = False
+        else:
+            #not in garbage
+            garbage = True if char == '<' else False
+        return State(cleaned,garbage,ignore_next)
+
+    stream = load(file) if stream is None else stream
+    State = namedtuple('State', 'cleaned,garbage,ignore_next')
+    init_state = State(0,False,False)
+    state = stream |> reduce$(process, ?, init_state)
+    return state.cleaned
+
+'*-'*54 |> print
+part1(FILE) |> 'Part1: {}'.format |> print
+'*|'*54 |> print
+part2(FILE) |> 'Part2: {}'.format |> print
 
 
 
