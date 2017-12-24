@@ -1,0 +1,164 @@
+'''
+--- Day 24: Electromagnetic Moat ---
+The CPU itself is a large, black building surrounded by a bottomless pit. Enormous metal tubes extend outward from the side of the building at regular intervals and descend down into the void. There's no way to cross, but you need to get inside.
+
+No way, of course, other than building a bridge out of the magnetic components strewn about nearby.
+
+Each component has two ports, one on each end. The ports come in all different types, and only matching types can be connected. You take an inventory of the components by their port types (your puzzle input). Each port is identified by the number of pins it uses; more pins mean a stronger connection for your bridge. A 3/7 component, for example, has a type-3 port on one side, and a type-7 port on the other.
+
+Your side of the pit is metallic; a perfect surface to connect a magnetic, zero-pin port. Because of this, the first port you use must be of type 0. It doesn't matter what type of port you end with; your goal is just to make the bridge as strong as possible.
+
+The strength of a bridge is the sum of the port types in each component. For example, if your bridge is made of components 0/3, 3/7, and 7/4, your bridge has a strength of 0+3 + 3+7 + 7+4 = 24.
+
+For example, suppose you had the following components:
+
+0/2
+2/2
+2/3
+3/4
+3/5
+0/1
+10/1
+9/10
+With them, you could make the following valid bridges:
+
+0/1
+0/1--10/1
+0/1--10/1--9/10
+0/2
+0/2--2/3
+0/2--2/3--3/4
+0/2--2/3--3/5
+0/2--2/2
+0/2--2/2--2/3
+0/2--2/2--2/3--3/4
+0/2--2/2--2/3--3/5
+(Note how, as shown by 10/1, order of ports within a component doesn't matter. However, you may only use each port on a component once.)
+
+Of these bridges, the strongest one is 0/1--10/1--9/10; it has a strength of 0+1 + 1+10 + 10+9 = 31.
+
+What is the strength of the strongest bridge you can make with the components you have available?
+'''
+import numpy as np
+from collections import defaultdict
+from copy import deepcopy
+
+FILE = 'input24.txt'
+SIZE = 50
+DEBUG = True
+SAMPLE = '''\
+0/2
+2/2
+2/3
+3/4
+3/5
+0/1
+10/1
+9/10
+'''
+
+
+def load(file=FILE):
+    '''
+    returns: table
+    '''
+    table = defaultdict(lambda: set())
+    if file is None:
+        in_ = SAMPLE.splitlines()
+    else:
+        with open(file) as f:
+            in_ = f.read().splitlines()
+    indexes = in_ |> map$(.split('/'))
+    set_ = set()
+    for i,j in indexes:
+            table[int(i)].add(int(j))
+            table[int(j)].add(int(i))
+            # set_.add((int(i),int(j),))
+    return table
+
+def build_bridge(table,solutions=[],bridge=[0],maxstrenght=0):
+    # table = deepcopy(table)
+    from_ = bridge[-1]
+    if table[from_] == set():
+        solutions.append(bridge)
+        if DEBUG:
+            print(bridge)
+        return sum(bridge)
+    candidates = table[from_]
+    # if DEBUG:
+    #     print('bridge: {}, candidates:{}'.format(bridge,candidates))
+    for to_ in candidates:
+        table_ = deepcopy(table)
+        table_[from_] -= {to_}
+        table_[to_] -= {from_}
+        bet = build_bridge(table_,solutions,bridge+[from_,to_],maxstrenght)
+        if bet > maxstrenght:
+            maxstrenght = bet
+    return maxstrenght
+
+def part1(file=FILE):
+    table = load(file)
+    solutions = []
+    return_ = build_bridge(table,solutions)
+    if DEBUG:
+        print(solutions)
+    return return_
+
+'''
+--- Part Two ---
+The bridge you've built isn't long enough; you can't jump the rest of the way.
+
+In the example above, there are two longest bridges:
+
+0/2--2/2--2/3--3/4
+0/2--2/2--2/3--3/5
+Of them, the one which uses the 3/5 component is stronger; its strength is 0+2 + 2+2 + 2+3 + 3+5 = 19.
+
+What is the strength of the longest bridge you can make? If you can make multiple bridges of the longest length, pick the strongest one.
+
+Although it hasn't changed, you can still get your puzzle input.
+'''
+
+def build_bridge2(table,bridge=[0],maxlenght=0, best_bridges=[]):
+    # table = deepcopy(table)
+    from_ = bridge[-1]
+    if table[from_] == set():
+        # solutions.append(bridge)
+        if DEBUG:
+            print('{},'.format(bridge))
+        if len(bridge) > maxlenght:
+            maxlenght = len(bridge)
+            return maxlenght, [bridge]
+        elif len(bridge) == maxlenght:
+            best_bridges.append(bridge)
+        return maxlenght, best_bridges
+
+    candidates = table[from_]
+    # if DEBUG:
+    #     print('bridge: {}, candidates:{}'.format(bridge,candidates))
+    for to_ in candidates:
+        table_ = deepcopy(table)
+        table_[from_] -= {to_}
+        table_[to_] -= {from_}
+        maxlenght, best_bridges = build_bridge2(table_,bridge+[from_,to_],maxlenght,best_bridges)
+    return maxlenght, best_bridges
+
+def part2(file=FILE):
+    table = load(file)
+    # solutions = []
+    _, longest_bridges = build_bridge2(table)
+    # if DEBUG:
+    #     print(solutions)
+    return max(map(sum,longest_bridges))
+
+
+# DEBUG = False
+# '^&'*55 |> print
+# part1() |> print
+DEBUG = True
+part2() |> print
+
+
+
+
+
